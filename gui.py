@@ -2251,9 +2251,15 @@ class MainGUI(tk.Tk):
         card = tk.Frame(grid_parent, bg="white", highlightbackground="#d9d9d9", highlightthickness=1)
         card.grid(row=row, column=column, padx=10, pady=8, sticky="ew")
 
-        # 1. RIGHT: Controls
+        # Define proportional grid weights to prevent columns from overlapping
+        card.columnconfigure(0, weight=3) # Metadata
+        card.columnconfigure(1, weight=4) # Schedules
+        card.columnconfigure(2, weight=0) # Controls
+
+        # 1. RIGHT: Controls (Fixed Width)
         right_frame = tk.Frame(card, bg="white", padx=15, pady=15)
-        right_frame.pack(side="right", fill="y")
+        right_frame.grid(row=0, column=2, sticky="ne") # Anchor to top-right
+        
         btn_frame = tk.Frame(right_frame, bg="white")
         btn_frame.pack(anchor="e", pady=(0, 5))
 
@@ -2263,40 +2269,43 @@ class MainGUI(tk.Tk):
                                 text_button=self.show_add_schedule_form)
 
         tk.Label(right_frame, text=f"Units: {course.units if hasattr(course, 'units') else '3'}", 
-                 font=("Arial", 10), fg="#666666", bg="white").pack(anchor="e")
+                 font=("Arial", 10, "bold"), fg=COLORS['purple'], bg="white").pack(anchor="e")
 
-        # 2. LEFT: Primary Info
-        left_frame = tk.Frame(card, bg="white", padx=15, pady=15, width=350)
-        left_frame.pack(side="left", fill="y")
-        # Spacer to maintain column alignment
-        tk.Frame(left_frame, width=350, height=0, bg="white").pack()
+        # 2. LEFT: Primary Info (Weight 3)
+        left_frame = tk.Frame(card, bg="white", padx=15, pady=15)
+        left_frame.grid(row=0, column=0, sticky="nsew")
 
         tk.Label(left_frame, text=f"Course Code: {course.code}", font=("Arial", 9), 
                  fg="#999999", bg="white", justify="left").pack(anchor="w")
 
+        # CRITICAL FIX: Add justify="left" and an initial wraplength
         title_label = tk.Label(left_frame, text=course.title, font=("Arial", 14, "bold"), 
-                               fg="black", bg="white", justify="left")
+                               fg="black", bg="white", justify="left", wraplength=300)
         title_label.pack(anchor="w", pady=(2, 2))
 
         instructor = course.instructor if course.instructor else "No Instructor Assigned"
-        tk.Label(left_frame, text=f"Instructor: {instructor}", font=("Arial", 9), 
-                 fg="#999999", bg="white", justify="left").pack(anchor="w")
+        instructor_label = tk.Label(left_frame, text=f"Instructor: {instructor}", font=("Arial", 9), 
+                                    fg="#999999", bg="white", justify="left", wraplength=300)
+        instructor_label.pack(anchor="w")
 
-        # 3. MIDDLE: Schedules
+        # 3. MIDDLE: Schedules (Weight 4)
         middle_frame = tk.Frame(card, bg="white", padx=15, pady=15)
-        middle_frame.pack(side="left", fill="both", expand=True)
+        middle_frame.grid(row=0, column=1, sticky="nsew")
 
-        tk.Label(middle_frame, text="Schedules:", font=("Arial", 9), 
+        tk.Label(middle_frame, text="Schedules:", font=("Arial", 9, "bold"), 
                  fg="#666666", bg="white").pack(anchor="w")
         
         if hasattr(course, 'schedules') and course.schedules:
             for sched in course.schedules:
                 time_fmt = f"{sched.start_time.strftime('%I:%M %p')} - {sched.end_time.strftime('%I:%M %p')}"
                 tk.Label(middle_frame, text=f"• {sched.day}, {time_fmt}", 
-                         font=("Arial", 9, "bold"), fg="#4d4d4d", bg="white").pack(anchor="w", padx=(10, 0))
+                         font=("Arial", 9), fg="#4d4d4d", bg="white").pack(anchor="w", padx=(10, 0))
         else:
-            tk.Label(middle_frame, text="• No schedule set", font=("Arial", 9, "bold"), 
-                     fg="#4d4d4d", bg="white").pack(anchor="w", padx=(10, 0))
+            tk.Label(middle_frame, text="• No schedule set", font=("Arial", 9, "italic"), 
+                     fg="#999999", bg="white").pack(anchor="w", padx=(10, 0))
+
+        # Dynamic wrap binding ensures the text breaks before hitting the middle column
+        self.bind_auto_wrap(left_frame, title_label, instructor_label, padding=30)
 
     def build_dash_announcements(self, parent, announcements, row, col):
         """
